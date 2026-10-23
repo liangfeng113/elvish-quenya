@@ -1,0 +1,33 @@
+espeak-ng（昆雅发音用的语音引擎）
+================================
+
+本项目 assets/espeak/ 下包含：
+
+  libespeak_ng.dll                         eSpeak NG 1.52.0 的 Windows 运行库
+  espeak-ng-data/                          语音数据（含昆雅音素数据 qya / qya_dict）
+
+来源：https://github.com/espeak-ng/espeak-ng  （release 1.52.0 的 espeak-ng.msi，解出后使用）
+
+许可：GPLv3（GNU General Public License version 3）
+      https://www.gnu.org/licenses/gpl-3.0.html
+      完整条款见 https://github.com/espeak-ng/espeak-ng/blob/master/COPYING
+
+本项目对 espeak-ng 的用法：不修改其源码或数据，仅以 ctypes 动态加载 DLL 调用其公开 API
+（espeak_Initialize / espeak_SetVoiceByName / espeak_Synth 等），并通过 app/speech.py 包装。
+本项目的其余部分（词库工具、课程、界面）不是 espeak-ng 的衍生作品。
+
+若你要再分发本目录，请随附上述 GPLv3 条款与来源说明。
+
+其它随包资源：
+  assets/tengwar-font/   FreeMonoTengwar（Free Tengwar Font Project，GPL + 字体嵌入例外）
+  assets/freefont/       GNU FreeFont FreeSerif（GPL + 字体例外）
+  mobile/web/fonts/      同上两款字体的网页副本（FreeMonoTengwar.ttf，未改动）
+  node_modules/          Glǽmscribe 1.3.1（AGPL-3.0，由 npm 安装，未随包附带）
+  mobile/web/vendor/     Glǽmscribe 1.3.1 的浏览器构建 + quenya 转写模式（AGPL-3.0，
+                         © Benjamin Babut，非本仓库修改过的代码）
+  data/elvish.db         Eldamo v0.8.13 词库（© Paul Strack，CC-BY 4.0）
+  data/eldamo-data.xml   Eldamo 原始 XML（© Paul Strack，CC-BY 4.0）
+
+本项目整体（自有代码）的许可见仓库根目录 LICENSE（AGPL-3.0）。上面每一项都按
+自己的许可继续有效，不因本项目整体是 AGPL 而被替换；CC-BY 的 Eldamo 数据不做再许可，
+只要求保留署名。

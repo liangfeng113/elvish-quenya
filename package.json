@@ -1,0 +1,8 @@
+{
+  "name": "elvish-quenya",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "glaemscribe": "^1.3.1"
+  }
+}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>昆雅 · 学</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="昆雅">
+<meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15130f" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+  <div class="empty" style="padding-top:30vh">正在取出词库…</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<noscript><div class="empty">这个页面需要 JavaScript。</div></noscript>
+
+<!-- Tengwar 转写：Glǽmscribe（AGPL-3.0 © Benjamin Babut），与桌面版共用同一份 -->
+<script src="vendor/glaemscribe.min.js"></script>
+<script src="vendor/tengwar_telcontar.cst.js"></script>
+<script src="vendor/quenya-tengwar-classical.glaem.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

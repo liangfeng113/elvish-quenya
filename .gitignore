@@ -1,0 +1,18 @@
+# 依赖与工具链（体积大，按需自行安装）
+.tools/
+node_modules/
+.npm-cache/
+
+# 本地/部署状态
+.netlify/
+__pycache__/
+*.pyc
+data/tw_cache/
+mobile/dist/
+mobile/bin/
+
+# 学习进度（属于使用者本人，克隆后从零开始）
+data/progress.json
+
+# 生成的图片缓存
+*.tmp
