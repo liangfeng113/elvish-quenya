@@ -1344,6 +1344,9 @@ class LearnApp(tk.Tk):
         self.results = tk.Listbox(left, font=(SANS, 10), bg=PANEL, fg=FG, bd=0,
                                   highlightthickness=1, highlightbackground=LINE,
                                   selectbackground="#efe3d0", selectforeground=FG, activestyle="none")
+        self.dict_hint = tk.Label(self.tab_dict, text="", font=(SANS, 9), bg=BG, fg=ACCENT,
+                                  anchor="w", justify="left", wraplength=760)
+        self.dict_hint.pack(fill="x", padx=6)
         self.results.pack(fill="both", expand=True)
         self.results.bind("<<ListboxSelect>>", self.on_select)
         right = tk.Frame(split, bg=BG)
@@ -1361,6 +1364,12 @@ class LearnApp(tk.Tk):
         term = self.q.get().strip()
         if not term:
             return
+        cjk = any("\u4e00" <= ch <= "\u9fff" for ch in term)
+        if cjk:
+            self._search_zh(term)
+            return
+        if hasattr(self, "dict_hint"):
+            self.dict_hint.configure(text="")
         k = E.form_key(term)
         rows = self.con.execute(
             """SELECT * FROM word WHERE form_key = ?
@@ -1372,6 +1381,32 @@ class LearnApp(tk.Tk):
             rows = self.con.execute("SELECT * FROM word WHERE gloss LIKE ? COLLATE NOCASE ORDER BY tier LIMIT 300",
                                     ("%" + term + "%",)).fetchall()
         self.rows = rows[:120]
+        self._fill_results()
+
+    def _search_zh(self, term):
+        """中文查词：中文只负责找到词条，释义仍看英文原文与出处。"""
+        rows, hit = C.zh_search(self.con, term)
+        label = "、".join(zh for zh, _ in hit[:3]) if hit else term
+        ens = []
+        for _, ks in hit:
+            for k in ks:
+                if k not in ens:
+                    ens.append(k)
+        if not hit:
+            self.rows = []
+            self._fill_results()
+            self.dict_hint.configure(
+                text="中文检索表里还没有「%s」。现在收录 %d 个高频词；"
+                     "换个说法试试，或者直接打英文（如 water、star）。"
+                     % (term, len(C.zh_index())))
+            return
+        self.rows = rows
+        self.dict_hint.configure(
+            text="中文匹配「%s」→ %s　　共 %d 条（按语言时代与可靠等级排序）"
+                 % (label, " / ".join(ens[:4]), len(rows)))
+        self._fill_results()
+
+    def _fill_results(self):
         self.results.delete(0, "end")
         for r in self.rows:
             mk = (" " + r["mark"]) if r["mark"] else ""
@@ -1607,6 +1642,16 @@ def selftest(app):
                 break
     print("练习 OK: 题库 %d 个已学词, 6 题跑完" % n_before)
     app.destroy()
+    # 中文查词：高频词必须能命中，且第一条要是昆雅词
+    for zh, want in (("星", "star"), ("剑", "sword"), ("水", "water")):
+        rows, hit = C.zh_search(app.con, zh)
+        assert rows, "中文查词命中不了: " + zh
+        assert (rows[0]["lang"] or "") in ("q", "nq"), zh + " 首条不是昆雅系"
+        assert want in (rows[0]["gloss"] or "").lower(), zh + " 首条不是 " + want
+    empty, _ = C.zh_search(app.con, "键盘")
+    assert empty == [], "未收录的词不该出结果"
+    print("中文查词 OK: 星/剑/水 命中正确，未收录词返回空")
+
     print("ALL SELFTEST PASS")
 
 
@@ -1660,6 +1705,10 @@ if __name__ == "__main__":
                     n = int(tab[5:])
                     app._alpha_idx = n
                     app.show_card()
+            elif tab == "dictzh":
+                app.nb.select(app.tab_dict)
+                app.q.set("星")          # self.q 是 StringVar，只能用 set
+                app.do_search()
             elif tab == "dict":
                 app.nb.select(app.tab_dict)
                 app.q.set("elen")
@@ -1697,7 +1746,18 @@ if __name__ == "__main__":
                 pass
 
         def grab():
+            # 抓图前再抬一次：否则窗口在后面时抓到的会是别的程序（实测抓到过浏览器）
+            try:
+                app.deiconify()
+                app.lift()
+                app.attributes("-topmost", True)
+                app.focus_force()
+            except Exception:
+                pass
             app.update_idletasks()
+            app.update()
+            import time
+            time.sleep(0.35)
             app.update()
             from PIL import ImageGrab
             x, y = app.winfo_rootx(), app.winfo_rooty()

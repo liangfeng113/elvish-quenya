@@ -587,3 +587,102 @@ def make_sentence_question(row, pool):
             "prompt": gloss, "prompt_sub": "意思", "options": None,
             "answer": " ".join(toks), "chips": shuffled, "target": toks,
             "row": row, "note": None}
+
+# ---------------------------------------------------------------- 中文检索键
+# 中文只用来「找到」词条；释义仍以英文原文 + 出处为准。
+# 数据在 data/zh-keys.json（逐条人工判定，不用机器翻译——Eldamo 的英文用的是
+# 古义/诗义，fair=晴朗美丽、fell=兽皮、spring=泉，机翻会系统性地翻错）。
+ZH_KEYS = os.path.join(ROOT, "data", "zh-keys.json") if "ROOT" in globals() else \
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "zh-keys.json")
+
+_zh_cache = {}
+
+
+def zh_index():
+    """{中文词: [英文检索键]} —— 从 JSON 反查表，带缓存。"""
+    if _zh_cache:
+        return _zh_cache
+    try:
+        with open(ZH_KEYS, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return _zh_cache
+    inv = {}
+    for en, zh_list in data.get("keys", {}).items():
+        for zh in zh_list:
+            inv.setdefault(zh, []).append(en)
+    _zh_cache.update(inv)
+    return _zh_cache
+
+
+def zh_match(term):
+    """中文查询 → 命中的 (中文词, [英文键]) 列表。
+
+    单字只做精确匹配：否则「水」会把「水塘/水源/水平」一起拉进来，
+    而用户打「水」想要的几乎总是 water。
+    """
+    idx = zh_index()
+    term = term.strip()
+    if not term:
+        return []
+    hit = [(zh, ens) for zh, ens in idx.items() if zh == term]
+    if hit:
+        return hit
+    if len(term) == 1:
+        # 一个字：只允许作为开头（耳 → 耳朵、眼 → 眼睛），不做中部匹配
+        return [(zh, ens) for zh, ens in idx.items() if zh.startswith(term)]
+    # 反方向（检索词包含某个中文词）只允许两字以上，否则打「龙龟」会因为含「龙」就命中
+    return [(zh, ens) for zh, ens in idx.items()
+            if term in zh or (len(zh) >= 2 and zh in term)]
+
+
+def zh_search(con, term, limit=100, quenya_only=True):
+    """按中文查词。返回 (rows, matched)。
+
+    两个要点：
+    · **按词边界**匹配英文键。用 SQL 的 %key% 会把 "ear" 命中 "earth/year/heart/bear"
+      （实测 826 条），所以先粗筛、再用正则卡边界。
+    · 排序：整条释义就是这个键 > 键在开头 > 键在后面 > 其他；再按可靠等级与释义长度。
+    """
+    hit = zh_match(term)
+    if not hit:
+        return [], []
+    ens = []
+    for _, ks in hit:
+        for k in ks:
+            if k not in ens:
+                ens.append(k)
+    tagged, seen = [], set()
+    for ki, k in enumerate(ens):
+        pat = re.compile(r"(?<![a-z])" + re.escape(k) + r"(?![a-z])")
+        sql = ("SELECT * FROM word WHERE (',' || lower(gloss) || ',') LIKE ?"
+               + (" AND lang IN ('q','nq','mq','eq')" if quenya_only else "")
+               + " ORDER BY CASE lang WHEN 'q' THEN 0 WHEN 'nq' THEN 1 ELSE 2 END LIMIT 200")
+        for r in con.execute(sql, ("%" + k + "%",)):
+            key = (r["lang"], r["form_key"])
+            if key in seen:
+                continue
+            g = (r["gloss"] or "").lower()
+            if not pat.search(g):
+                continue
+            seen.add(key)
+            # 以该键开头（含 "sword, forged blade" 这种把主要义项写在前面的）
+            # 都算主要义项；否则 "sword" 与 "sword, …" 会被判成两档，语言更早的词反而排前面。
+            if g == k or g.startswith(k + ",") or g.startswith(k + ";") or g.startswith(k + " "):
+                rank = 0
+            elif ("; " + k) in g or (", " + k) in g:
+                rank = 2
+            else:
+                rank = 3
+            try:
+                tier = int(r["tier"])
+            except Exception:
+                tier = 9
+            lang = (r["lang"] or "")
+            lrank = 0 if lang == "q" else (1 if lang == "nq" else 2)
+            # 专名与短语靠后：查「星」时不该先看到 Cuiviénen 这种地名
+            sp = (r["speech"] or "")
+            nrank = 1 if sp in ("proper-name", "place-name", "name", "phrase") else 0
+            tagged.append((rank, ki, lrank, nrank, tier, len(g), r))
+    tagged.sort(key=lambda t: (t[0], t[1], t[2], t[3], t[4], t[5]))
+    return [t[6] for t in tagged[:limit]], hit
