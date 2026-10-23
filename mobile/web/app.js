@@ -578,6 +578,10 @@ function sessionView() {
 
 /* ---------------------------------------------------------------- 渲染 */
 
+/* AGPL-3.0 §13：通过网络使用本应用的人要有拿到源码的机会，所以页脚列出来源 */
+const SRC_LINE = '<a class="src" href="https://github.com/liangfeng113/elvish-quenya"' +
+  ' target="_blank" rel="noopener">源码 · AGPL-3.0 ｜ 词库 Eldamo © Paul Strack (CC-BY)</a>';
+
 function render() {
   const el = app();
   const inSess = !!session;
@@ -593,7 +597,8 @@ function render() {
     else body = learnHome();
   }
   const mainCls = 'main' + (inSess ? ' session no-tabs' : '');
-  el.innerHTML = headerHtml() + '<main class="' + mainCls + '">' + body + '</main>' +
+  el.innerHTML = headerHtml() + '<main class="' + mainCls + '">' + body +
+    (inSess ? '' : SRC_LINE) + '</main>' +
     (inSess ? '' : tabsHtml());
 
   if (!inSess && stack[stack.length - 1].name === 'dict') {
