@@ -269,19 +269,34 @@ class LearnApp(tk.Tk):
         self.tab_dict = tk.Frame(self.nb, bg=BG)
         self.tab_sent = tk.Frame(self.nb, bg=BG)
         self.tab_alpha = tk.Frame(self.nb, bg=BG)
+        self.tab_practice = tk.Frame(self.nb, bg=BG)
         self.nb.add(self.tab_learn, text="学习")
         self.nb.add(self.tab_review, text="复习")
         self.nb.add(self.tab_dict, text="查词")
         self.nb.add(self.tab_sent, text="造句")
+        self.nb.add(self.tab_practice, text="练习")
         self.nb.add(self.tab_alpha, text="字母表")
         self._build_path()
         self._build_review()
         self._build_dict()
         self._build_sentence()
         self._build_alphabet()
+        self._build_practice()
+        self.render_practice()
+        self.nb.bind("<<NotebookTabChanged>>", self.on_tab_changed)
         self._build_refbar()
         self.render_review()
         self.apply_ref_visibility()
+
+    def on_tab_changed(self, _ev=None):
+        try:
+            tab = self.nb.nametowidget(self.nb.select())
+        except Exception:
+            return
+        if tab is getattr(self, "tab_practice", None):
+            self.render_practice()
+        elif tab is getattr(self, "tab_review", None):
+            self.render_review()
 
     def refresh_meta(self):
         p = self.prog
@@ -387,10 +402,13 @@ class LearnApp(tk.Tk):
             return
         words = list(lesson["words"])
         pool = [w for l in unit["lessons"] for w in l["words"]]
-        steps = []
-        for w in words:
-            steps.append({"t": "teach", "word": w})
-            steps.append({"t": "quiz", "row": w, "pool": pool})
+        # 先「认识」再「回忆」：把 6 个新词全部过一遍（翻面 + 自评）才开考。
+        # 上来就摆四个选项让人选意思，等于在考没记住的东西。
+        steps = [{"t": "meet", "queue": words[:], "done": []}]
+        for w in words:                       # 第一轮：只看词形/听音 → 选义
+            steps.append({"t": "quiz", "row": w, "pool": pool, "kinds": ["k2e", "e2k"]})
+        for w in words:                       # 第二轮：反着来 → 想起来再写出来
+            steps.append({"t": "quiz", "row": w, "pool": pool, "kinds": ["e2k", "spell"]})
         for w in random.sample(words, min(3, len(words))):
             steps.append({"t": "quiz", "row": w, "pool": pool})
         self.lesson = {"kind": "lesson", "lid": lesson["lid"], "title": lesson["title"],
@@ -460,17 +478,108 @@ class LearnApp(tk.Tk):
         self.pb.create_rectangle(0, 0, int(w * frac), 10, fill=ACCENT, width=0)
         self.pb.create_rectangle(0, 0, w, 10, fill="#e6dfd1", width=0)
         self.pb.create_rectangle(0, 0, int(w * frac), 10, fill=ACCENT, width=0)
-        self.hearts_lb.configure(text="♥" * L["hearts"] + "♡" * (HEARTS - L["hearts"]))
+        if L.get("kind") == "practice":
+            self.hearts_lb.configure(text="∞", fg=MUTED)
+        else:
+            self.hearts_lb.configure(text="♥" * L["hearts"] + "♡" * (HEARTS - L["hearts"]),
+                                     fg=RED)
 
         s = L["steps"][L["i"]]
-        if s["t"] == "teach":
+        if s["t"] == "meet":
+            self.render_meet(s)
+        elif s["t"] == "teach":
             self.render_teach(s["word"])
         elif s["t"] == "read":
             self.render_read(s["sent"])
         elif s["t"] == "sentq":
             self.render_sentence_quiz(s["sent"], s.get("pool") or [s["sent"]])
         else:
-            self.render_quiz(s["row"], s.get("pool") or [s["row"]])
+            self.render_quiz(s["row"], s.get("pool") or [s["row"]], s.get("kinds"))
+
+    # ---------------- 认识阶段（先记住，再考）
+    def render_meet(self, s):
+        """记忆阶段：一张卡只讲一个词，正面只有词形（先自己想），翻面才给意思。
+        「再看一遍」会把这张卡放回队尾 —— 间隔重入，比反复盯着看有用。"""
+        if not s["queue"]:
+            # 全部过完（含重看过的），进入考试
+            self.lesson["i"] += 1
+            self.step()
+            return
+        row = s["queue"][0]
+        flipped = s.get("flipped")
+
+        cf = tk.Frame(self.body, bg=BG)
+        cf.pack(expand=True)
+        total = len(s["done"]) + len(s["queue"])
+        tk.Label(cf, text="新词 · 第 %d/%d 个" % (len(s["done"]) + 1, total),
+                 font=(SANS, 9), bg=BG, fg=MUTED).pack(pady=(6, 2))
+
+        line = tk.Frame(cf, bg=BG)
+        line.pack()
+        tk.Label(line, text=C.display_form(row["form"]), font=(SERIF, 46), bg=BG,
+                 fg=FG).pack(side="left")
+        self.speaker_button(line, row["form"]).pack(side="left", padx=(12, 0), pady=(16, 0))
+
+        if not flipped:
+            tk.Label(cf, text="先在心里想一想：它是什么意思？", font=(SANS, 11),
+                     bg=BG, fg=MUTED).pack(pady=(14, 4))
+            self.say_if_on(row["form"])
+            self.advance_button("翻面看意思", lambda: self.meet_flip(True), color=ACCENT)
+            return
+
+        tk.Label(cf, text=row["gloss"] or "—", font=(SANS, 15), bg=BG, fg=ACCENT,
+                 wraplength=720, justify="center").pack(pady=(6, 2))
+        sub = C.describe_row(row)
+        cites = C.citation_of(self.con, row, 2)
+        if cites:
+            sub.append("出处 " + " / ".join(cites))
+        tk.Label(cf, text=" · ".join(sub), font=(SANS, 9), bg=BG, fg=MUTED).pack()
+
+        self._tw_small = None
+        try:
+            png = C.tengwar_png(C.display_form(row["form"]))
+            if png:
+                img = Image.open(png)
+                sc = min(280 / img.size[0], 80 / img.size[1], 1.0)
+                if sc != 1:
+                    img = img.resize((max(1, int(img.size[0] * sc)), max(1, int(img.size[1] * sc))),
+                                     Image.LANCZOS)
+                self._tw_small = ImageTk.PhotoImage(img)
+                tk.Label(cf, image=self._tw_small, bg=BG, bd=0).pack(pady=(4, 0))
+        except Exception:
+            pass
+
+        sp = self.speaker
+        if sp and sp.ok:
+            ip = sp.ipa(row["form"])
+            if ip:
+                tk.Label(cf, text="IPA  " + ip, font=(MONO, 9), bg=BG, fg=MUTED).pack(pady=(2, 0))
+
+        bar = tk.Frame(self.foot, bg=BG)
+        bar.pack()
+        tk.Button(bar, text="记住了 ✓", font=(SANS, 12, "bold"), bg=GREEN, fg="white",
+                  bd=0, padx=26, pady=9, cursor="hand2",
+                  command=lambda: self.meet_next(True)).pack(side="left", padx=6)
+        tk.Button(bar, text="再看一遍 ↺", font=(SANS, 12), bg=PANEL, fg=FG, bd=0,
+                  padx=22, pady=9, cursor="hand2", highlightthickness=1,
+                  highlightbackground=LINE,
+                  command=lambda: self.meet_next(False)).pack(side="left", padx=6)
+        tk.Label(self.foot, text="拿不准就点「再看一遍」，它会排到后面再出现一次。",
+                 font=(SANS, 9), bg=BG, fg=MUTED).pack(pady=(8, 0))
+
+    def meet_flip(self, v=True):
+        s = self.lesson["steps"][self.lesson["i"]]
+        s["flipped"] = v
+        self.step()
+
+    def meet_next(self, remembered):
+        s = self.lesson["steps"][self.lesson["i"]]
+        row = s["queue"].pop(0)
+        s["done"].append(row)
+        if not remembered:
+            s["queue"].append(row)           # 排到队尾，后面再见一次
+        s["flipped"] = False
+        self.step()
 
     # ---------------- 教学卡
     def render_teach(self, row):
@@ -483,10 +592,7 @@ class LearnApp(tk.Tk):
         self.speaker_button(line, row["form"]).pack(side="left", padx=(12, 0), pady=(14, 0))
         tk.Label(cf, text=row["gloss"] or "—", font=(SANS, 13), bg=BG, fg=ACCENT,
                  wraplength=720, justify="center").pack(pady=(4, 2))
-        sub = []
-        if row["speech"]:
-            sub.append(row["speech"])
-        sub.append("等级 %d" % row["tier"])
+        sub = C.describe_row(row)
         cites = C.citation_of(self.con, row, 2)
         if cites:
             sub.append("出处 " + " / ".join(cites))
@@ -689,9 +795,9 @@ class LearnApp(tk.Tk):
         self.feedback(ok, q)
 
     # ---------------- 题目
-    def render_quiz(self, row, pool):
+    def render_quiz(self, row, pool, kinds=None):
         self._answered = False
-        q = C.make_question(row, pool)
+        q = C.make_question(row, pool, kinds)
         self.cur_q = q
         L = self.lesson
 
@@ -795,7 +901,9 @@ class LearnApp(tk.Tk):
             L["hearts"] -= 1
         C.grade(self.prog, self.cur_q["row"], ok)
         C.save_progress(self.prog)
-        self.hearts_lb.configure(text="♥" * max(0, L["hearts"]) + "♡" * (HEARTS - max(0, L["hearts"])))
+        self.hearts_lb.configure(
+            text="∞" if L.get("kind") == "practice"
+            else "♥" * max(0, L["hearts"]) + "♡" * (HEARTS - max(0, L["hearts"])))
         if L.get("combo", 0) >= 3:
             self.combo_lb.configure(text="连击 %d" % L["combo"])
 
@@ -855,6 +963,27 @@ class LearnApp(tk.Tk):
         self.lesson = None
         self.result_screen("复习完成", xp, L, streak, extra="处理 %d 张卡" % len(L["steps"]))
 
+    # ------------------------------------------------------------ 练习页
+    def start_practice(self, n, kinds=None):
+        steps = C.practice_questions(self.con, self.prog, n, kinds)
+        if not steps:
+            return
+        self.lesson = {"kind": "practice", "lid": None,
+                       "title": "随机练习 %d 题" % len(steps),
+                       "steps": steps, "i": 0, "hearts": 99, "correct": 0, "wrong": 0,
+                       "new_words": [], "next_fn": self.finish_practice}
+        self.open_lesson()
+
+    def finish_practice(self):
+        L = self.lesson
+        xp = max(1, L["correct"])
+        C.add_xp(self.prog, xp)
+        streak = C.touch_streak(self.prog)
+        C.save_progress(self.prog)
+        self.lesson = None
+        self.result_screen("练习结束", xp, L, streak,
+                           extra="练的都是学过的词：%d 题" % len(L["steps"]))
+
     def finish_fail(self):
         L = self.lesson
         self.lesson = None
@@ -893,6 +1022,59 @@ class LearnApp(tk.Tk):
         self.refresh_meta()
         self.render_path()
         self.render_review()
+
+    # ------------------------------------------------------------ 练习页 UI
+    def _build_practice(self):
+        self.practice_box = tk.Frame(self.tab_practice, bg=BG)
+        self.practice_box.pack(fill="both", expand=True, padx=6, pady=10)
+
+    def render_practice(self):
+        box = self.practice_box
+        for w in box.winfo_children():
+            w.destroy()
+        learned = C.learned_uids(self.prog)
+        n = len(learned)
+
+        tk.Label(box, text="随机练习", font=(SANS, 14, "bold"), bg=BG, fg=FG).pack(anchor="w")
+        tk.Label(box, text="只出你已经学过的词，题型随机混着来；答对答错都照常记进复习排期。",
+                 font=(SANS, 9), bg=BG, fg=MUTED).pack(anchor="w", pady=(2, 12))
+
+        stat = tk.Frame(box, bg=PANEL, highlightthickness=1, highlightbackground=LINE)
+        stat.pack(fill="x", pady=(0, 14), ipady=10)
+        strong, total = C.mastery(self.prog)
+        for label, val, col in (("可练的词", n, FG), ("掌握了", strong, GREEN),
+                                ("今日 XP", C.xp_today(self.prog), GOLD)):
+            cell = tk.Frame(stat, bg=PANEL)
+            cell.pack(side="left", expand=True)
+            tk.Label(cell, text=str(val), font=(SERIF, 22), bg=PANEL, fg=col).pack()
+            tk.Label(cell, text=label, font=(SANS, 9), bg=PANEL, fg=MUTED).pack()
+
+        if not n:
+            tk.Label(box, text="还没有学过的词。先去「学习」上第一节课，回来这里就能练了。",
+                     font=(SANS, 10), bg=BG, fg=MUTED).pack(anchor="w", pady=(6, 0))
+            return
+
+        tk.Label(box, text="题量", font=(SANS, 10, "bold"), bg=BG, fg=FG).pack(anchor="w", pady=(4, 6))
+        row = tk.Frame(box, bg=BG)
+        row.pack(anchor="w", pady=(0, 14))
+        for label, cnt in (("10 题", 10), ("20 题", 20), ("50 题", 50)):
+            tk.Button(row, text=label, font=(SANS, 11), bg=PANEL, fg=FG, bd=0,
+                      padx=20, pady=9, cursor="hand2", highlightthickness=1,
+                      highlightbackground=LINE,
+                      command=lambda c=cnt: self.start_practice(c)).pack(side="left", padx=(0, 8))
+
+        tk.Label(box, text="只练某一类", font=(SANS, 10, "bold"), bg=BG, fg=FG).pack(anchor="w", pady=(4, 6))
+        row2 = tk.Frame(box, bg=BG)
+        row2.pack(anchor="w")
+        for label, kinds in (("看词选义", ["k2e"]), ("看义选词", ["e2k"]),
+                             ("拼写", ["spell"]), ("精灵文字母", ["tengwar"])):
+            tk.Button(row2, text=label, font=(SANS, 10), bg=PANEL, fg=ACCENT, bd=0,
+                      padx=16, pady=7, cursor="hand2", highlightthickness=1,
+                      highlightbackground=LINE,
+                      command=lambda k=kinds: self.start_practice(15, k)).pack(side="left", padx=(0, 8))
+
+        tk.Label(box, text="没有精灵文字母的题 = 没装转写引擎（npm install），其余题型不受影响。",
+                 font=(SANS, 8), bg=BG, fg=MUTED).pack(anchor="w", pady=(12, 0))
 
     # ------------------------------------------------------------ 复习页
     def _build_review(self):
@@ -1301,9 +1483,16 @@ def selftest(app):
         if s["t"] == "teach":
             app.next_step()
             continue
+        if s["t"] == "meet":
+            # 记忆阶段：模拟「翻面 → 记住了」一路过完
+            app.meet_flip(True)
+            assert app.lesson["steps"][app.lesson["i"]].get("flipped") is True, "翻面没生效"
+            app.meet_next(True)
+            continue
         # 交替答对/答错，验证两条分支
         app.step()  # 重建界面，确保有 self.cur_q
-        want_wrong = (guard % 5 == 0)
+        # 只答错一次（验证错误分支与打回重排），其余答对，保证这节能上完
+        want_wrong = (guard == 8)
         if app.cur_q["options"]:
             pick = app.cur_q["answer"]
             if want_wrong:
@@ -1392,6 +1581,31 @@ def selftest(app):
 
     app.close_lesson()
     app.refresh_meta()
+    # 随机练习：只出学过的词，且能跑完
+    n_before = len(C.learned_uids(app.prog))
+    assert n_before > 0, "上完课应该有学过的词"
+    app.start_practice(6)
+    assert app.lesson and app.lesson["kind"] == "practice", "练习没开起来"
+    assert len(app.lesson["steps"]) == 6
+    for s in app.lesson["steps"]:
+        assert s["t"] == "quiz"
+    guard = 0
+    while app.lesson and guard < 60:
+        guard += 1
+        if app.lesson["i"] >= len(app.lesson["steps"]):
+            break
+        app.step()
+        if app.cur_q["options"]:
+            app.answer_choice(app.cur_q["answer"])
+        else:
+            app.entry.delete(0, "end")
+            app.entry.insert(0, app.cur_q["answer"])
+            app.answer_spell()
+        for w in app.foot.winfo_children():
+            if isinstance(w, tk.Button) and w.cget("text") in ("继续", "完成"):
+                w.invoke()
+                break
+    print("练习 OK: 题库 %d 个已学词, 6 题跑完" % n_before)
     app.destroy()
     print("ALL SELFTEST PASS")
 
@@ -1432,6 +1646,14 @@ if __name__ == "__main__":
         def goto():
             if tab == "review":
                 app.nb.select(app.tab_review)
+            elif tab in ("meet", "meetback"):
+                u, l = app.current_lesson()
+                app.start_lesson(u, l)
+                if tab == "meetback":
+                    app.meet_flip(True)
+            elif tab == "practice":
+                app.nb.select(app.tab_practice)
+                app.render_practice()
             elif tab.startswith("alpha"):
                 app.nb.select(app.tab_alpha)
                 if tab.startswith("alpha") and len(tab) > 5:

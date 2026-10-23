@@ -187,6 +187,45 @@ def due_rows(con, p, limit=12):
     return rows_by_uids(con, uids)
 
 
+def learned_uids(p):
+    """学过（进过复习队列）的词 uid，按最近学过的排在前面。"""
+    items = []
+    for k, c in p["cards"].items():
+        u = c.get("uid")
+        if u:
+            items.append((c.get("last", ""), u))
+    items.sort(reverse=True)
+    out = []
+    for _, u in items:
+        if u not in out:
+            out.append(u)
+    return out
+
+
+def practice_rows(con, p, limit=None):
+    """随机练习的题库：只取学过的词（没学过的不考）。"""
+    uids = learned_uids(p)
+    if limit:
+        uids = uids[:limit]
+    return rows_by_uids(con, uids)
+
+
+def practice_questions(con, p, n=12, kinds=None, shuffle=True):
+    """按已学过的词出 n 道题（同一批词做干扰项池）。"""
+    rows = practice_rows(con, p)
+    if not rows:
+        return []
+    pool = rows
+    out = []
+    for i in range(n):
+        row = random.choice(rows)
+        out.append({"t": "quiz", "row": row, "pool": pool,
+                    "kinds": kinds, "q": make_question(row, pool, kinds)})
+    if shuffle:
+        random.shuffle(out)
+    return out
+
+
 def add_xp(p, n):
     d = _today().isoformat()
     p["xp"][d] = p["xp"].get(d, 0) + n
@@ -314,6 +353,40 @@ def check_spelling(typed, answer):
             return True, "答对了，不过注意重音符号：**%s**" % answer
         return True, None
     return False, None
+
+
+SPEECH_CN = {
+    "n": "名词", "adj": "形容词", "adv": "副词", "v": "动词", "prep": "介词",
+    "pron": "代词", "conj": "连词", "interj": "感叹词", "particle": "小品词",
+    "root": "词根", "prefix": "前缀", "suffix": "后缀", "phrase": "短语",
+    "proper-name": "专名", "place-name": "地名", "name": "人名", "numeral": "数词",
+}
+TIER_CN = {
+    0: "原文证实", 1: "可推导", 2: "后人重建", 3: "古语", 4: "早期写法",
+    5: "存疑", 6: "粉丝新造", 7: "边缘", 9: "不建议使用",
+}
+LANG_CN = {
+    "q": "晚期昆雅", "nq": "新昆雅", "mq": "中期昆雅", "eq": "早期昆雅",
+    "s": "辛达林", "n": "诺多林", "t": "泰勒林",
+}
+
+
+def describe_row(row):
+    """把 n / 等级 0 这种人话不通的标记翻成中文。"""
+    bits = []
+    sp = (row["speech"] or "").strip()
+    if sp:
+        bits.append(SPEECH_CN.get(sp, sp))
+    lg = (row["lang"] or "").strip()
+    if lg:
+        bits.append(LANG_CN.get(lg, lg))
+    try:
+        tier = int(row["tier"])
+    except Exception:
+        tier = None
+    if tier is not None:
+        bits.append(TIER_CN.get(tier, "等级 %d" % tier))
+    return bits
 
 
 def citation_of(con, row, limit=2):
