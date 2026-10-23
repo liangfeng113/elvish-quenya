@@ -61,7 +61,7 @@ LOCK = "#b8b0a2"
 
 GLYPH_FONT = os.path.join(ROOT, "assets", "tengwar-font", "FreeMonoTengwar.2013-07-21", "FreeMonoTengwar.ttf")
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 
 SERIF = "Georgia"
 SANS = "Microsoft YaHei UI"

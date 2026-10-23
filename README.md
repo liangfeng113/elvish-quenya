@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows-2b6a8a)](#下载即用推荐)
 [![Python](https://img.shields.io/badge/python-3.9%2B-3a6a4a)](#从源码跑)
 
-> **v1.0.0** · Windows 桌面应用 · **[下载解压就能用](https://github.com/liangfeng113/elvish-quenya/releases/latest)**（只需机器上有 Python）
+> **v1.0.1** · Windows 桌面应用 · **[下载解压就能用](https://github.com/liangfeng113/elvish-quenya/releases/latest)**（只需机器上有 Python）
 
 一个**可查证**的昆雅（Quenya）学习底座：把 Paul Strack 的 [Eldamo](https://eldamo.org) 词库灌进本地 SQLite，
 配一个查词/验句工具和一份 DSH 技能，让学精灵语这件事不再靠模型瞎编。
@@ -13,7 +13,7 @@
 ## 下载即用（推荐）
 
 1. 到 **[Releases](https://github.com/liangfeng113/elvish-quenya/releases/latest)** 下载
-   `elvish-quenya-1.0.0-source.zip`，解压得到 `elvish-quenya-1.0.0\` 目录
+   `elvish-quenya-1.0.1-source.zip`，解压得到 `elvish-quenya-1.0.0\` 目录
 2. `pip install Pillow`（**只需一次**；图形界面和所有图片渲染都用它）
 3. 进目录双击 **`昆雅.vbs`**（无黑窗）或 `昆雅.cmd`
 
