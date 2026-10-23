@@ -1,0 +1,7 @@
+# 日常使用（桌面应用 / 命令行 / 图片渲染）
+Pillow>=9.0
+
+# 仅在重建词库时需要：python tools/build_db.py
+# 它要解析 28.9 MB 的 eldamo-data.xml，lxml 比标准库的 ElementTree 快很多。
+# 不重建词库就不用装，装上也不影响使用。
+lxml>=4.9

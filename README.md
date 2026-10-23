@@ -3,6 +3,34 @@
 一个**可查证**的昆雅（Quenya）学习底座：把 Paul Strack 的 [Eldamo](https://eldamo.org) 词库灌进本地 SQLite，
 配一个查词/验句工具和一份 DSH 技能，让学精灵语这件事不再靠模型瞎编。
 
+## 从零跑起来
+
+只支持 **Windows**（启动器是 `.vbs`/`.lnk`，语音走 Windows 的 DLL）。三步：
+
+```powershell
+# 1) Python 依赖（图形界面用 Pillow；其余都是标准库）
+pip install -r requirements.txt   # Pillow（lxml 只在重建词库时用得上）
+
+# 2) 转写引擎（拉丁字母 → 腾格瓦字母）。不装也能用，只是没有精灵文字母图
+npm install
+
+# 3) 启动
+.\昆雅.cmd
+```
+
+然后双击 **`昆雅.vbs`** 就是无黑窗的日常入口（想装桌面快捷方式见下面的「桌面应用」）。
+
+需要 **Python 3.9+**（要带 tkinter，官方安装包默认带）和 **Node.js 18+**（仅转写用）。依赖清单：`requirements.txt`（Python）、`package.json`（Node）。
+
+| 缺什么 | 会怎样 |
+|---|---|
+| 没 `npm install` | 一切正常，但「读出精灵文字母」那类题会退回成拼写题，词卡上也没有腾格瓦 |
+| 没 `pip install Pillow` | 起不来（图形界面与所有图片渲染都依赖它） |
+| 没 Node.js | 同「没 npm install」，且 `elvish.py tengwar` 不可用 |
+
+> 语音开箱可用：`assets/espeak/` 里已经带了 `libespeak_ng.dll` 与昆雅音素数据，不需要另外安装。
+> 词库 `data/elvish.db` 也已随仓库提供，**不需要**重建；只有你想改词库时才需要下原始 XML。
+
 ## 为什么需要它
 
 LLM 讲精灵语时幻觉极高：语法框架编得像模像样，词汇却常有大量不存在的词。精灵语是 conlang，
@@ -258,7 +286,7 @@ PY="C:\Users\1\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.
 ```
 elvish-quenya/
 ├─ 昆雅.vbs               学习应用启动器（推荐，无黑窗）
-├─ 安装快捷方式.cmd        装桌面/开始菜单/开机自启（双击一次）
+├─ requirements.txt        Python 依赖（Pillow；lxml 仅重建词库用）\n├─ package.json            Node 依赖（Glǽmscribe，转写用）\n├─ 安装快捷方式.cmd        装桌面/开始菜单/开机自启（双击一次）
 ├─ 移除快捷方式.cmd        三个一起删
 ├─ 昆雅.cmd               同上，备用（CRLF + 纯 ASCII）
 ├─ 词典.cmd               旧版纯词典应用
