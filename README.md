@@ -199,8 +199,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\install.ps1 -NoAutosta
 
 ## 用法（命令行）
 
-## 用法（命令行）
-
 ```bash
 PY="C:\Users\1\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe"
 
@@ -311,6 +309,6 @@ elvish-quenya/
 
 - **发音**：昆雅的长短元音与重音有明确规则，但"标准音"是重构的，没有母语者可对照。
   真要听，只能用系统 TTS 念拉丁转写，读不出昆雅的长短对立。
-- **语法讲义**：见 `.dsh/skills/elvish-quenya/SKILL.md` 里的课程骨架（对应 Eldamo 官方 15 章入门课）。
+- **语法讲义**：课程顺序对应 Eldamo 官方 15 章入门课，但还没有成文的语法讲义页面。
 - **辛达林**：词库和转写模式都已具备（`--mode sindarin-tengwar-beleriand`），但没有单独的课程骨架。
 

@@ -1,4 +1,4 @@
-# 把 mobile/web 发布到 Netlify 正式站点（your-site）
+﻿# 把 mobile/web 发布到 Netlify 正式站点（your-site）
 # 用法: powershell -File mobile\deploy.ps1
 $ErrorActionPreference = 'Stop'
 
