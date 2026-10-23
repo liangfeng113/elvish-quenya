@@ -61,6 +61,8 @@ LOCK = "#b8b0a2"
 
 GLYPH_FONT = os.path.join(ROOT, "assets", "tengwar-font", "FreeMonoTengwar.2013-07-21", "FreeMonoTengwar.ttf")
 
+APP_VERSION = "1.0.0"
+
 SERIF = "Georgia"
 SANS = "Microsoft YaHei UI"
 MONO = "Consolas"
@@ -168,7 +170,7 @@ class LearnApp(tk.Tk):
                                fg=GREEN if v else MUTED)
 
     ABOUT = [
-        ("昆雅 · 学", "用托尔金原文当读本的昆雅学习工具。同人作品，非官方，免费。"),
+        ("昆雅 · 学  v" + APP_VERSION, "用托尔金原文当读本的昆雅学习工具。同人作品，非官方，免费。"),
         ("词库", "Eldamo v0.8.13  © Paul Strack  ·  CC-BY 4.0\n"
                  "https://eldamo.org\n"
                  "本应用把它解析成 SQLite 并加了检索字段（已改动）。"),
@@ -234,6 +236,7 @@ class LearnApp(tk.Tk):
         head.pack(fill="x", padx=24, pady=(16, 4))
         tk.Label(head, text="昆雅", font=(SERIF, 21), bg=BG, fg=FG).pack(side="left")
         tk.Label(head, text="  Quenya", font=(SANS, 10), bg=BG, fg=MUTED).pack(side="left", pady=(9, 0))
+        tk.Label(head, text="v" + APP_VERSION, font=(SANS, 9), bg=BG, fg="#b3aa9a").pack(side="left", pady=(10, 0))
 
         self.meta = tk.Frame(head, bg=BG)
         self.meta.pack(side="right", pady=(6, 0))

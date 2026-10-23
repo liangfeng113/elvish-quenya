@@ -1,5 +1,7 @@
 # 昆雅精灵语学习底座（elvish-quenya）
 
+> **v1.0.0** · Windows 桌面应用（源码运行；需要 Python 3.9+ 与 Node 18+）
+
 一个**可查证**的昆雅（Quenya）学习底座：把 Paul Strack 的 [Eldamo](https://eldamo.org) 词库灌进本地 SQLite，
 配一个查词/验句工具和一份 DSH 技能，让学精灵语这件事不再靠模型瞎编。
 
