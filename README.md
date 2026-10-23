@@ -1,5 +1,10 @@
 # 昆雅精灵语学习底座（elvish-quenya）
 
+[![Release](https://img.shields.io/github/v/release/liangfeng113/elvish-quenya?color=f0ad4a)](https://github.com/liangfeng113/elvish-quenya/releases/latest)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-8a5a2b)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows-2b6a8a)](#下载即用推荐)
+[![Python](https://img.shields.io/badge/python-3.9%2B-3a6a4a)](#从源码跑)
+
 > **v1.0.0** · Windows 桌面应用 · **[下载解压就能用](https://github.com/liangfeng113/elvish-quenya/releases/latest)**（只需机器上有 Python）
 
 一个**可查证**的昆雅（Quenya）学习底座：把 Paul Strack 的 [Eldamo](https://eldamo.org) 词库灌进本地 SQLite，
