@@ -1,4 +1,4 @@
-﻿# 把 mobile/web 发布到 Netlify 正式站点（your-site）
+﻿# 把 mobile/web 发布到 Netlify 正式站点（站点名从 NETLIFY_SITE 环境变量取）
 # 用法: powershell -File mobile\deploy.ps1
 $ErrorActionPreference = 'Stop'
 
@@ -9,10 +9,10 @@ if (-not (Test-Path $cli)) {
     throw "没找到 Netlify CLI。先跑: npm install netlify-cli --no-save --prefix .tools --ignore-scripts"
 }
 
-$siteId = '8432534e-545b-4655-80f2-83c202a9c37a'   # 项目 your-site
+$siteId = $env:NETLIFY_SITE_ID   # 在你自己的 Netlify 后台取
 $web = Join-Path $mobile 'web'
 
-Write-Host "发布 $web -> https://your-site.netlify.app" -ForegroundColor Cyan
+Write-Host "发布 $web -> https://$($env:NETLIFY_SITE).netlify.app" -ForegroundColor Cyan
 & $cli deploy --prod --no-build --dir $web --site $siteId
 
 Write-Host ""

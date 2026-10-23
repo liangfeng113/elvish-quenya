@@ -47,7 +47,7 @@ mobile/
 
 ## 正式站点（Netlify）
 
-**https://your-site.netlify.app** —— 账号 `removed-account`（removed）名下，永久、免密码、HTTPS。
+部署到自己的 Netlify 站点即可（站点名自定），永久、免密码、HTTPS。
 
 发布（改完内容后重新推一次）：
 
