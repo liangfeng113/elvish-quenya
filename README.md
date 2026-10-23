@@ -17,7 +17,7 @@ LLM 讲精灵语时幻觉极高：语法框架编得像模像样，词汇却常�
 |---|---|
 | 来源 | [Eldamo](https://eldamo.org) v0.8.13（2026-06-01 生成） |
 | 作者 / 授权 | © Paul Strack，[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)——可自由使用，须署名 |
-| 原始文件 | `data/eldamo-data.xml`（28.9 MB，从 eldamo.org 直链并发分块下载） |
+| 原始文件 | `data/eldamo-data.xml`（28.9 MB）**不随仓库分发**——需要重建词库时跑 `node tools/fetch-eldamo.mjs` 现取 |
 | 词库 | `data/elvish.db`（22 MB，35900 词条 / 90852 条引文 / 18154 个屈折形 / 16350 个构词成分） |
 
 **本项目不拥有这些数据**，只是把它整理成可查的形式；分发衍生品请保留上面这段署名。

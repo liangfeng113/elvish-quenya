@@ -85,6 +85,13 @@ def mark_rank(mark):
 
 
 def main():
+    if not os.path.exists(XML):
+        sys.exit(
+            "找不到 %s\n\n"
+            "原始 XML 不再随仓库分发（28.9 MB，可由 CC-BY 原始数据重新获取）。\n"
+            "先跑一次下载：\n"
+            "    node tools/fetch-eldamo.mjs data/eldamo-data.xml\n"
+            "再重跑本脚本。" % XML)
     print("parsing %s ..." % XML)
     root = etree.parse(XML, etree.XMLParser(huge_tree=True, remove_comments=True)).getroot()
     print("version %s" % root.get("version"))
