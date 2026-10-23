@@ -1,28 +1,38 @@
 # 昆雅精灵语学习底座（elvish-quenya）
 
-> **v1.0.0** · Windows 桌面应用（源码运行；需要 Python 3.9+ 与 Node 18+）
+> **v1.0.0** · Windows 桌面应用 · **[下载解压就能用](https://github.com/liangfeng113/elvish-quenya/releases/latest)**（只需机器上有 Python）
 
 一个**可查证**的昆雅（Quenya）学习底座：把 Paul Strack 的 [Eldamo](https://eldamo.org) 词库灌进本地 SQLite，
 配一个查词/验句工具和一份 DSH 技能，让学精灵语这件事不再靠模型瞎编。
 
-## 从零跑起来
+## 下载即用（推荐）
 
-只支持 **Windows**（启动器是 `.vbs`/`.lnk`，语音走 Windows 的 DLL）。三步：
+1. 到 **[Releases](https://github.com/liangfeng113/elvish-quenya/releases/latest)** 下载
+   `elvish-quenya-1.0.0-source.zip`，解压得到 `elvish-quenya-1.0.0\` 目录
+2. `pip install Pillow`（**只需一次**；图形界面和所有图片渲染都用它）
+3. 进目录双击 **`昆雅.vbs`**（无黑窗）或 `昆雅.cmd`
+
+包内**已经带好**转写引擎（`node_modules`）和完整词库（22 MB SQLite），所以不用 `npm install`、
+不用下载数据、全程不联网。唯一前提是机器上有 **Python 3.9+**（官方安装包默认带 tkinter）。
+
+不想装任何东西，也可以先在浏览器里看一眼：
+**[在线试玩](https://your-site.netlify.app)** —— 那是同一套词库与转写的网页版，
+功能比桌面版简（没有中文查词、练习页和语音），适合先感受一下。
+
+想让它像正经桌面应用一样出现在桌面/开始菜单/开机自启，双击一次 **`安装快捷方式.cmd`** 即可
+（见下面的「桌面应用」）。
+
+## 从源码跑
+
+从 Git 仓库直接跑的话，还多一步装转写引擎：
 
 ```powershell
-# 1) Python 依赖（图形界面用 Pillow；其余都是标准库）
 pip install -r requirements.txt   # Pillow（lxml 只在重建词库时用得上）
-
-# 2) 转写引擎（拉丁字母 → 腾格瓦字母）。不装也能用，只是没有精灵文字母图
-npm install
-
-# 3) 启动
+npm install                       # 转写引擎，出腾格瓦图要用
 .\昆雅.cmd
 ```
 
-然后双击 **`昆雅.vbs`** 就是无黑窗的日常入口（想装桌面快捷方式见下面的「桌面应用」）。
-
-需要 **Python 3.9+**（要带 tkinter，官方安装包默认带）和 **Node.js 18+**（仅转写用）。依赖清单：`requirements.txt`（Python）、`package.json`（Node）。
+需要 **Python 3.9+** 与 **Node.js 18+**（仅转写用）。依赖清单：`requirements.txt` / `package.json`。
 
 | 缺什么 | 会怎样 |
 |---|---|
@@ -30,8 +40,8 @@ npm install
 | 没 `pip install Pillow` | 起不来（图形界面与所有图片渲染都依赖它） |
 | 没 Node.js | 同「没 npm install」，且 `elvish.py tengwar` 不可用 |
 
-> 语音开箱可用：`assets/espeak/` 里已经带了 `libespeak_ng.dll` 与昆雅音素数据，不需要另外安装。
-> 词库 `data/elvish.db` 也已随仓库提供，**不需要**重建；只有你想改词库时才需要下原始 XML。
+> 语音开箱可用：`assets/espeak/` 里已经带了 `libespeak_ng.dll` 与昆雅音素数据。
+> 词库 `data/elvish.db` 也随包提供，**不需要**重建；只有想改词库时才要下载原始 XML。
 
 ## 为什么需要它
 
