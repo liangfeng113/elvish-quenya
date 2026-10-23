@@ -15,6 +15,7 @@ import random
 import datetime
 import contextlib
 import subprocess
+import shutil
 import threading
 
 import tkinter as tk
@@ -82,6 +83,31 @@ def dpi_aware():
         pass
 
 
+def stage_icon():
+    """把图标复制到纯 ASCII 路径再返回。
+
+    Windows 的图标接口（以及快捷方式的 IconLocation）遇到中文路径会**静默失败**：
+    资源管理器直接退回「未知文件」白纸图标。本项目住在「灵感」下面，所以必须先
+    铺一份到 ASCII 目录。安装器 tools/install.ps1 做的是同一件事。
+    """
+    src = os.path.join(ROOT, "assets", "quenya.ico")
+    if not os.path.exists(src):
+        return None
+    for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("ProgramData"),
+                 os.environ.get("TEMP")):
+        if not base or any(ord(c) > 127 for c in base):
+            continue
+        dst = os.path.join(base, "QuenyaLearn", "quenya.ico")
+        try:
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(src):
+                shutil.copyfile(src, dst)
+            return dst
+        except Exception:
+            continue
+    return None
+
+
 class LearnApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -90,6 +116,12 @@ class LearnApp(tk.Tk):
         self.geometry("1100x800")
         self.minsize(960, 720)
         self.configure(bg=BG)
+        try:                                  # 标题栏 / 任务栏图标
+            ic = stage_icon() or os.path.join(ROOT, "assets", "quenya.ico")
+            if os.path.exists(ic):
+                self.iconbitmap(ic)
+        except Exception:
+            pass
         self.con = C.connect()
         self.prog = C.load_progress()
         self.prog.setdefault("settings", {"tts": True, "speed": 135})
@@ -135,6 +167,44 @@ class LearnApp(tk.Tk):
         self.tts_btn.configure(text="🔊 朗读 开" if v else "🔇 朗读 关",
                                fg=GREEN if v else MUTED)
 
+    ABOUT = [
+        ("昆雅 · 学", "用托尔金原文当读本的昆雅学习工具。同人作品，非官方，免费。"),
+        ("词库", "Eldamo v0.8.13  © Paul Strack  ·  CC-BY 4.0\n"
+                 "https://eldamo.org\n"
+                 "本应用把它解析成 SQLite 并加了检索字段（已改动）。"),
+        ("转写", "Glǽmscribe 1.3.1  © Benjamin Babut  ·  AGPL-3.0\n"
+                 "https://github.com/BenTalagan/glaemscribe"),
+        ("语音", "eSpeak NG 1.52.0  ·  GPL-3.0\n"
+                 "昆雅音素数据（voice qya）来自同一项目。"),
+        ("字体", "FreeMonoTengwar（Free Tengwar Font Project）· GPL + 字体例外\n"
+                 "FreeSerif（GNU FreeFont）· GPL + 字体例外"),
+        ("本应用", "AGPL-3.0。完整许可与第三方清单见仓库里的\n"
+                   "LICENSE、LICENSES/、THIRD-PARTY.md。"),
+        ("关于托尔金", "昆雅语、腾格瓦字母及相关名称的权利属于 Tolkien Estate 等权利人，\n"
+                       "不在上面任何开源许可的授权范围内。本应用仅作语言学习用途引用。"),
+    ]
+
+    def show_about(self):
+        w = tk.Toplevel(self)
+        w.title("关于 · 昆雅")
+        w.configure(bg=BG)
+        w.geometry("620x560")
+        w.transient(self)
+        tk.Label(w, text="许可与署名", font=(SERIF, 17), bg=BG, fg=FG).pack(anchor="w", padx=22, pady=(18, 4))
+        tk.Label(w, text="这个应用用的东西几乎都是别人的，这里逐一说明。",
+                 font=(SANS, 9), bg=BG, fg=MUTED).pack(anchor="w", padx=22, pady=(0, 12))
+        box = tk.Text(w, wrap="word", font=(SANS, 9), bg=PANEL, fg=FG, bd=0,
+                      highlightthickness=1, highlightbackground=LINE,
+                      padx=14, pady=12, spacing1=2, spacing3=4)
+        box.pack(fill="both", expand=True, padx=22, pady=(0, 10))
+        box.tag_configure("h", font=(SANS, 10, "bold"), foreground=ACCENT, spacing1=8)
+        for title, body in self.ABOUT:
+            box.insert("end", title + "\n", ("h",))
+            box.insert("end", body + "\n")
+        box.configure(state="disabled")
+        tk.Button(w, text="关闭", font=(SANS, 10), bg=ACCENT, fg="white", bd=0,
+                  padx=26, pady=8, cursor="hand2", command=w.destroy).pack(pady=(0, 16))
+
     def speaker_button(self, parent, text, form=None):
         b = tk.Button(parent, text="🔊", font=(SANS, 10), bg=PANEL, fg=ACCENT, bd=0,
                       activebackground=PANEL, cursor="hand2",
@@ -167,6 +237,9 @@ class LearnApp(tk.Tk):
 
         self.meta = tk.Frame(head, bg=BG)
         self.meta.pack(side="right", pady=(6, 0))
+        tk.Button(self.meta, text="ⓘ 关于", font=(SANS, 9), bg=BG, fg=MUTED, bd=0,
+                         activebackground=BG, cursor="hand2",
+                         command=self.show_about).pack(side="left", padx=(0, 12))
         self.ref_btn = tk.Button(self.meta, text="", font=(SANS, 9), bg=BG, fg=ACCENT,
                                  bd=0, activebackground=BG, cursor="hand2",
                                  command=self.toggle_ref)

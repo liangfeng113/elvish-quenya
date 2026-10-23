@@ -16,3 +16,5 @@ data/progress.json
 
 # 生成的图片缓存
 *.tmp
+
+data/_*.png

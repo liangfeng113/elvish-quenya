@@ -48,6 +48,38 @@ if (-not (Test-Path $Icon)) {
     }
 }
 
+# ---------- 图标：必须先落到纯 ASCII 路径 ----------
+# IconLocation 里带中文时，资源管理器解析不出图标，会静默退回「未知文件」白纸图标
+# （旧版就是这个症状：肉眼就是"图标根本看不见"）。这里先复制到 ASCII 目录再引用。
+function Get-AsciiIconPath {
+    param([string]$Src)
+    $cands = @(
+        (Join-Path $env:LOCALAPPDATA "QuenyaLearn\quenya.ico"),
+        (Join-Path $env:ProgramData "QuenyaLearn\quenya.ico"),
+        (Join-Path $env:TEMP "QuenyaLearn\quenya.ico")
+    )
+    foreach ($c in $cands) {
+        if (-not $c) { continue }
+        $bad = $false
+        foreach ($ch in $c.ToCharArray()) { if ([int]$ch -gt 127) { $bad = $true; break } }
+        if ($bad) { continue }
+        try {
+            $dir = Split-Path $c -Parent
+            if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+            Copy-Item $Src $c -Force
+            return $c
+        } catch { continue }
+    }
+    return $null
+}
+
+$IconStaged = $null
+if (Test-Path $Icon) {
+    $IconStaged = Get-AsciiIconPath -Src $Icon
+    if ($IconStaged) { Info ("图标已放到 ASCII 路径：" + $IconStaged) }
+    else { Info "警告：没有可写的 ASCII 路径，图标可能显示不出来" }
+}
+
 # ---------- 目标位置 ----------
 $targets = @()
 if ($TestTarget -ne "") {
@@ -95,7 +127,8 @@ foreach ($t in $targets) {
         $sc.TargetPath = $Pyw
         $sc.Arguments = '"' + $App + '"'
         $sc.WorkingDirectory = $Root
-        if (Test-Path $Icon) { $sc.IconLocation = $Icon + ",0" }
+        $ic = if ($IconStaged) { $IconStaged } elseif (Test-Path $Icon) { $Icon } else { $null }
+        if ($ic) { $sc.IconLocation = $ic + ",0" }
         $sc.Description = "昆雅 · 学 —— 读托尔金原文的昆雅精灵语"
         $sc.WindowStyle = 1
         $sc.Save()

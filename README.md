@@ -82,9 +82,19 @@ LLM 讲精灵语时幻觉极高：语法框架编得像模像样，词汇却常�
 | 开始菜单快捷方式 | 开始菜单里搜「昆雅」就能找到 |
 | 开机自启 | `…\Start Menu\Programs\Startup\昆雅.lnk` |
 
-图标是 `assets/quenya.ico` —— 用自家渲染器画的昆雅词 **elen**（星）的精灵文写法：
+图标是 `assets/quenya.ico`：深色圆角底 + 一枚金色的四角星（**elen** 就是「星」）。
+浅色桌面上能跳出来，16px 也认得出。下面是**资源管理器实际画出来的**样子（左浅底、右深底，
+左边大图、右边小图）：
 
-![图标](data/icon-preview.png)
+![快捷方式图标](data/icon-in-shell.png)
+
+图标这里踩过一个坑，值得写下来：**`IconLocation` 里带中文路径时，资源管理器解析不出图标，
+会静默退回「未知文件」的白纸图标** —— 表现就是"图标根本看不见"，而且没有任何报错。
+所以安装器会先把 ico 复制到 `%LOCALAPPDATA%\QuenyaLearn\quenya.ico`（纯 ASCII），
+再让快捷方式引用那里；程序自己设窗口图标时也走同一条路。
+
+另一条是设计上的：旧版是浅色卡片 + 腾格瓦细笔画，缩到 16px 就糊成一团灰。
+现在的版本改用**屏幕尺度下还站得住的形状**（实心星），不再依赖细线。
 
 不想开机自启就双击 **`移除快捷方式.cmd`**（三个一起删，随时可以再装）。只想要桌面、不要自启：
 
@@ -273,14 +283,14 @@ elvish-quenya/
 │  ├─ elvish.py           查词 / 验句 / 转写 CLI（主入口）
 │  ├─ tengwar.mjs         拉丁 → Tengwar 码位（Glǽmscribe 引擎）
 │  ├─ install.ps1         快捷方式安装/移除（UTF-8 **带 BOM**，PS 5.1 需要）
-│  ├─ make_icon.py        生成 assets/quenya.ico
+│  ├─ make_icon.py        生成 assets/quenya.ico（BMP 帧，小尺寸单独调粗）
 │  ├─ make_alphabet_cards.py  生成「字母表」页的五张图卡
 │  └─ render_tengwar.py   码位 → PNG（Pillow + FreeMonoTengwar）
 ├─ assets/
 │  ├─ tengwar-font/       FreeMonoTengwar.ttf + GPL
 │  ├─ freefont/           FreeSerif.ttf（配图拉丁字）+ GPL
 │  ├─ espeak/             libespeak_ng.dll + 昆雅音素数据（23 MB，GPLv3）
-│  ├─ quenya.ico          应用图标（elen 的精灵文）
+│  ├─ quenya.ico          应用图标（深底 + 金色四角星，elen）
 │  ├─ alphabet/           「字母表」页的图卡（01-grid … 06-palatal）
 │  └─ NOTICE.txt          以上所有第三方资源的许可与来源
 ├─ node_modules/          glaemscribe（AGPL-3.0）
@@ -305,6 +315,22 @@ elvish-quenya/
 
 > **AGPL §13**：这个项目有公开在线版本（[your-site.netlify.app](https://your-site.netlify.app)），通过网络使用它的人有权拿到对应源码 —— 本仓库就是那份源码。
 
+## 许可与署名
+
+本仓库是几份不同授权的东西拼起来的，逐项写在 **[THIRD-PARTY.md](THIRD-PARTY.md)** 里（谁的作品、什么版本、有没有改、源码去哪拿）。
+
+| 部分 | 许可 |
+|---|---|
+| 本仓库代码 | [AGPL-3.0](LICENSE) |
+| Eldamo 词库（© Paul Strack） | [CC-BY 4.0](LICENSES/CC-BY-4.0.txt) |
+| Glǽmscribe（转写引擎） | AGPL-3.0（由 npm 安装，不含在本仓库） |
+| eSpeak NG（发音） | [GPL-3.0](LICENSES/GPL-3.0.txt) |
+| FreeMonoTengwar / FreeSerif | GPL + 字体嵌入例外 |
+| 根目录 | `LICENSES/` 放 GPL-3.0 与 CC-BY-4.0 全文，`assets/NOTICE.txt` 是来源与授权摘要 |
+
+**关于托尔金**：昆雅语、腾格瓦字母及相关名称的权利属于 Tolkien Estate 与 Middle-earth Enterprises 等权利人，
+不在上面任何开源许可的授权范围内。本仓库仅作语言学习用途引用词语与出处，不包含《魔戒》等作品正文、
+影视素材或官方标识，也不声称获得授权。这是一个**同人、非官方、免费**项目。
 ## 还没做的
 
 - **发音**：昆雅的长短元音与重音有明确规则，但"标准音"是重构的，没有母语者可对照。
